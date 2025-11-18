@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
+import { useAuth } from '../lib/useAuth';
 
 export default function SchemaWorkflow() {
+  const { user, loading: authLoading, logout } = useAuth();
   const [pages, setPages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState('');
@@ -17,9 +19,11 @@ export default function SchemaWorkflow() {
   const router = useRouter();
 
   useEffect(() => {
-    fetchPages();
-    checkUserRole();
-  }, [filter]);
+    if (user) {
+      fetchPages();
+      checkUserRole();
+    }
+  }, [filter, user]);
 
   // Auto-select page if page parameter is provided
   useEffect(() => {
@@ -233,10 +237,10 @@ export default function SchemaWorkflow() {
     }
   };
 
-  if (loading) {
+  if (authLoading || loading || !user) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="text-lg">Loading pages...</div>
+        <div className="text-lg">Loading...</div>
       </div>
     );
   }

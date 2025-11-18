@@ -6,11 +6,35 @@ export default function Dashboard() {
   const [pages, setPages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({});
+  const [user, setUser] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
-    fetchPages();
+    checkAuth();
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchPages();
+    }
+  }, [user]);
+
+  const checkAuth = async () => {
+    try {
+      const response = await fetch('/api/auth/verify');
+
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
+      } else {
+        // Not authenticated, redirect to login
+        router.push('/login');
+      }
+    } catch (error) {
+      // Error checking auth, redirect to login
+      router.push('/login');
+    }
+  };
 
   const fetchPages = async () => {
     try {
@@ -32,6 +56,12 @@ export default function Dashboard() {
     }
   };
 
+  const handleLogout = () => {
+    // Clear the user cookie by setting it to expire
+    document.cookie = 'user=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+    router.push('/login');
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'approved': return 'bg-green-100 text-green-800';
@@ -41,7 +71,7 @@ export default function Dashboard() {
     }
   };
 
-  if (loading) {
+  if (loading || !user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -61,7 +91,38 @@ export default function Dashboard() {
           <div className="max-w-7xl mx-auto px-4 py-6">
             <div className="flex justify-between items-center">
               <h1 className="text-2xl font-bold text-gray-900">Schema Dashboard</h1>
+              <div className="flex items-center space-x-4">
+                <span className="text-sm text-gray-600">
+                  Welcome, <span className="font-medium text-gray-900">{user?.name}</span>
+                </span>
+                <button 
+                  onClick={handleLogout}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+                >
+                  Logout
+                </button>
+              </div>
             </div>
+          </div>
+        </div>
+
+        {/* Navigation Tabs */}
+        <div className="bg-white border-b">
+          <div className="max-w-7xl mx-auto px-4">
+            <nav className="flex space-x-8">
+              <a 
+                href="/"
+                className="border-b-2 border-blue-600 py-4 px-1 text-sm font-medium text-blue-600"
+              >
+                Dashboard
+              </a>
+              <a 
+                href="/schema-workflow"
+                className="border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              >
+                Schema Review
+              </a>
+            </nav>
           </div>
         </div>
 
