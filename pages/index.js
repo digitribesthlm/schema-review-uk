@@ -2,39 +2,18 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 
-export default function Dashboard() {
+export default function Dashboard({ initialUser }) {
   const [pages, setPages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({});
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(initialUser);
   const router = useRouter();
-
-  useEffect(() => {
-    checkAuth();
-  }, []);
 
   useEffect(() => {
     if (user) {
       fetchPages();
     }
   }, [user]);
-
-  const checkAuth = async () => {
-    try {
-      const response = await fetch('/api/auth/verify');
-
-      if (response.ok) {
-        const data = await response.json();
-        setUser(data.user);
-      } else {
-        // Not authenticated, redirect to login
-        router.push('/login');
-      }
-    } catch (error) {
-      // Error checking auth, redirect to login
-      router.push('/login');
-    }
-  };
 
   const fetchPages = async () => {
     try {
@@ -71,7 +50,7 @@ export default function Dashboard() {
     }
   };
 
-  if (loading || !user) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -186,4 +165,44 @@ export default function Dashboard() {
       </div>
     </>
   );
+}
+
+// Server-side authentication check
+export async function getServerSideProps(context) {
+  const { req } = context;
+  
+  // Get user cookie from request
+  const userCookie = req.headers.cookie
+    ?.split(';')
+    .find(c => c.trim().startsWith('user='))
+    ?.split('=')[1];
+
+  // If no user cookie, redirect to login
+  if (!userCookie) {
+    return {
+      redirect: {
+        destination: '/login',
+        permanent: false,
+      },
+    };
+  }
+
+  try {
+    // Parse user data from cookie
+    const user = JSON.parse(decodeURIComponent(userCookie));
+    
+    return {
+      props: {
+        initialUser: user,
+      },
+    };
+  } catch (error) {
+    // Invalid cookie, redirect to login
+    return {
+      redirect: {
+        destination: '/login',
+        permanent: false,
+      },
+    };
+  }
 }
