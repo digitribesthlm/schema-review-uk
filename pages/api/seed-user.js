@@ -7,61 +7,46 @@ export default async function handler(req, res) {
   }
 
   // Simple security check - require a secret key
-  const { secret } = req.body
+  const { secret, email, password, name } = req.body
   if (secret !== 'seed-test-user-2025') {
     return res.status(403).json({ message: 'Forbidden' })
   }
 
   try {
     const { db } = await connectToDatabase()
-    const collection = db.collection('schema_clients')
+    const collection = db.collection('users')
 
     // Check if user already exists
-    const existingUser = await collection.findOne({ contact_email: 'manus@manus.com' })
+    const existingUser = await collection.findOne({ email: email || 'manus@manus.com' })
     
     if (existingUser) {
       // Update existing user's password
       await collection.updateOne(
-        { contact_email: 'manus@manus.com' },
+        { email: email || 'manus@manus.com' },
         { 
           $set: { 
-            password: 'test2025',
-            updated_at: new Date()
+            password: password || 'test2025',
+            name: name || existingUser.name,
+            last_login: new Date()
           } 
         }
       )
       return res.status(200).json({ 
         success: true, 
-        message: 'User already exists, password updated',
+        message: 'User password updated',
         user: {
-          email: 'manus@manus.com',
-          name: existingUser.contact_name
+          email: existingUser.email,
+          name: name || existingUser.name
         }
       })
     } else {
-      // Create new test user
-      const result = await collection.insertOne({
-        contact_email: 'manus@manus.com',
-        password: 'test2025',
-        contact_name: 'Manus Test User',
-        client_name: 'Manus Test Client',
-        domain: 'https://www.climberbi.co.uk',
-        created_at: new Date(),
-        updated_at: new Date()
-      })
-      
-      return res.status(200).json({ 
-        success: true, 
-        message: 'Test user created successfully',
-        userId: result.insertedId.toString(),
-        credentials: {
-          email: 'manus@manus.com',
-          password: 'test2025'
-        }
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found'
       })
     }
   } catch (error) {
-    console.error('Error seeding test user:', error)
+    console.error('Error updating user:', error)
     return res.status(500).json({ 
       success: false, 
       message: 'Internal server error',
