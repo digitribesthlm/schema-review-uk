@@ -35,10 +35,18 @@ export default function Dashboard({ initialUser }) {
     }
   };
 
-  const handleLogout = () => {
-    // Clear the user cookie by setting it to expire
-    document.cookie = 'user=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-    router.push('/login');
+  const handleLogout = async () => {
+    try {
+      // Call server-side logout to clear HttpOnly cookie
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // Redirect to login regardless of API result
+      router.push('/login');
+    }
   };
 
   const getStatusColor = (status) => {
