@@ -278,3 +278,41 @@ export default function Dashboard() {
   )
 }
 
+
+// Server-side authentication check
+export async function getServerSideProps(context) {
+  const { req } = context;
+  
+  // Get user cookie from request
+  const userCookie = req.headers.cookie
+    ?.split(';')
+    .find(c => c.trim().startsWith('user='))
+    ?.split('=')[1];
+
+  // If no user cookie, redirect to login
+  if (!userCookie) {
+    return {
+      redirect: {
+        destination: '/login',
+        permanent: false,
+      },
+    };
+  }
+
+  try {
+    // Parse user data from cookie
+    const user = JSON.parse(decodeURIComponent(userCookie));
+    
+    return {
+      props: {},
+    };
+  } catch (error) {
+    // Invalid cookie, redirect to login
+    return {
+      redirect: {
+        destination: '/login',
+        permanent: false,
+      },
+    };
+  }
+}
